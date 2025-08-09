@@ -8,9 +8,9 @@ namespace xcom_tactics
 {
     internal class UnitCardSpace : CardSpace
     {
-        public delegate void CardPlaced(Unit subject_, Unit object_);
+        public delegate void UnitPlaced(Unit subject_, Unit object_);
 
-        public CardPlaced? OnUnitPlaced { get; set; }
+        public UnitPlaced? OnUnitPlaced { get; set; }
 
         Dictionary<Unit, Card> m_unitCards = [];
 

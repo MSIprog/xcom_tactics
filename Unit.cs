@@ -12,108 +12,50 @@
         // todo: depends on weapon
         public Classes Class { get; set; }
 
-        // точность
-        public int Accuracy { get; set; }
-
-        // todo: не использовать эффекты!
-        // макимальный запас здоровья;
-        // фактический = максимальный - урон;
-        // урон хранится в эффектах
-        public int MaxHealth { get; set; }
-
-        public int Health
-        {
-            get
-            {
-                var result = MaxHealth;
-                var injuredEffect = m_effects.Find(e => e.m_info.Name == EffectInfo.Names.Injured);
-                if (injuredEffect != null)
-                    result -= injuredEffect.Value;
-                return result;
-            }
-            set
-            {
-                var injuredValue = MaxHealth - value;
-                if (injuredValue == 0)
-                    RemoveEffect(EffectInfo.Names.Injured);
-                else
-                    TakeEffect(new Effect(EffectInfo.Names.Injured) { Value = injuredValue });
-            }
-        }
+        // точность и запас здоровья (текущий и максимальный)
+        List<Feature> m_features = [];
 
         public Sides Side { get; set; }
 
         List<Equipment> m_equipment = [];
+        public List<Equipment> Equipment
+        {
+            get
+            {
+                return m_equipment;
+            }
+        }
 
         // для надписи на карте
         public int MaxAttack
         {
             get
             {
-                return m_equipment.Max(e => GetAttack(e, null));
+                return m_equipment.Max(e => e.m_info.Value);
             }
         }
 
         List<Effect> m_effects = [];
-
-        public int AccuracyDecrease
-        {
-            get
-            {
-                return m_effects.Max(e => e.m_info.AccuracyDecrease);
-            }
-        }
+        public List<Effect> Effects => m_effects;
 
         public Unit()
         {
-            Accuracy = 75;
-            MaxHealth = 3;
+            m_features.Add(new UnitHealth { MaxValue = 3 });
+            m_features.Add(new UnitAccuracy { Value = 75 });
         }
 
-        public void AddEquipment(EquipmentInfo.Names name_, int count_ = 1)
+        public void AddWeapon(EquipmentInfo.Names name_, int quantity_ = 1)
         {
-            m_equipment.Add(new Equipment(name_, count_));
+            m_equipment.Add(new Weapon(name_, quantity_));
         }
 
-        public int GetAttack(Equipment equipment_, Unit? object_)
+        public void AddEquipment(EquipmentInfo.Names name_, int quantity_ = 1)
         {
-            if (equipment_.m_info.Group != EquipmentInfo.Groups.Weapon)
-                return 0;
-            int accuracyDecrease = object_ != null ? object_.AccuracyDecrease : 0;
-            return equipment_.m_info.ValueDependsOnAccuracy ?
-                equipment_.m_info.Value * (Accuracy + equipment_.m_info.AccuracyIncrease - accuracyDecrease) / 100 :
-                equipment_.m_info.Value;
-        }
-
-        public void TakeDamage(int value_)
-        {
-            // effects
-
-            // plating
-            var plating = m_equipment.Find(e => e.m_info.IsPlating);
-            if (plating != null)
-            {
-                var oldValue = value_;
-                value_ -= plating.Count;
-                plating.Count -= oldValue;
-                if (plating.Count < 0)
-                    plating.Count = 0;
-            }
-
-            // armor
-
-            // body
-            Health -= value_;
-        }
-
-        public void Heal(int value_)
-        {
-            Health += value_;
+            m_equipment.Add(new Equipment(name_, quantity_));
         }
 
         public void TakeEffect(Effect effect_)
         {
-            // урон и лечение работают так же
             m_effects.RemoveAll(e => e.m_info.Name == effect_.m_info.Name);
             m_effects.Add(effect_);
         }
@@ -131,6 +73,50 @@
                     result.Add(equipment.m_info.Ability);
             return result;
         }
+
+        public Feature GetFeature(string name_)
+        {
+            var result = m_features.Find(f => f.Name == name_);
+            if (result == null)
+                throw new Exception("Feature not found");
+            return result;
+        }
+
+        public MinMaxFeature GetMinMaxFeature(string name_)
+        {
+            var feature = m_features.Find(f => f.Name == name_);
+            if (feature == null)
+                throw new Exception("Feature not found");
+            var result = feature as MinMaxFeature;
+            if (result == null)
+                throw new Exception("Feature is not MinMaxFeature");
+            return result;
+        }
+
+        /*public void OnAction(Action action_, bool thisIsSubject_)
+        {
+            // attack action
+            if (thisIsSubject_)
+            {
+                action_.GetFeature("Accuracy").Value += GetFeature("Accuracy").Value;
+
+                // current weapon
+                var equipment = m_equipment[action_.GetFeature("Equipment").Value];
+                equipment.OnAction(action_, true);
+
+                Effects.ForEach(e => e.OnAction(action_));
+            }
+            else
+            {
+                // effects
+
+                // armor, plating
+                m_equipment.ForEach(e => e.OnAction(action_, false));
+
+                // body
+                GetFeature("Health").Value -= action_.GetFeature("Damage").Value;
+            }
+        }*/
 
         public object Clone()
         {

@@ -46,7 +46,9 @@ namespace xcom_tactics
                 var oldClip = graphics_.Clip;
                 graphics_.Clip = frameRegion;
                 var image = g_faceImages[Unit.Class];
+#pragma warning disable CS8602 // Dereference of a possibly null reference.
                 var imageSize = image.Size;
+#pragma warning restore CS8602 // Dereference of a possibly null reference.
                 var imageFactor = (float)imageSize.Width / imageSize.Height;
                 var cardFactor = (float)g_cardSize.Width / g_cardSize.Height;
                 var imageRect = new Rectangle(Point.Empty, g_cardSize);
@@ -66,7 +68,7 @@ namespace xcom_tactics
             graphics_.FillRectangle(whiteBrush, rect);
             var blackBrush = new SolidBrush(Color.Black);
             var format = new StringFormat { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Center };
-            Utils.DrawString(graphics_, Unit.MaxAttack.ToString() + " [attack] " + Unit.Health.ToString() + " [health] ", g_images, font, blackBrush, rect, format);
+            Utils.DrawString(graphics_, Unit.MaxAttack.ToString() + " [attack] " + Unit.GetFeature("Health").Value.ToString() + " [health] ", g_images, font, blackBrush, rect, format);
 
             base.Draw(graphics_);
         }

@@ -20,12 +20,12 @@ namespace xcom_tactics
 
         //public int DurationInTurns { get; set; }
 
-        public int AccuracyDecrease { get; set; }
+        public int Accuracy { get; set; }
 
         static EffectInfo()
         {
             g_info.Add(new EffectInfo { Group = Groups.Debuffs, Name = Names.Injured });
-            g_info.Add(new EffectInfo { Group = Groups.Buffs, Name = Names.InSmoke, AccuracyDecrease = 30 });
+            g_info.Add(new EffectInfo { Group = Groups.Buffs, Name = Names.InSmoke, Accuracy = -30 });
         }
 
         public static EffectInfo Get(Names name_)
@@ -43,12 +43,15 @@ namespace xcom_tactics
 
         public int DurationInTurns { get; set; }
 
-        // для Injured
-        public int Value { get; set; }
-
         public Effect(EffectInfo.Names name_)
         {
             m_info = EffectInfo.Get(name_);
+        }
+
+        public void OnAction(Action action_)
+        {
+            // todo: move to SmokeEffect
+            action_.GetFeature("Accuracy").Value += m_info.Accuracy;
         }
 
         public object Clone()
