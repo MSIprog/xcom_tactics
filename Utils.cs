@@ -89,11 +89,69 @@ namespace xcom_tactics
             return (daysLeft != 0 ? daysLeft.ToString() + " day(s) " : "") + hoursLeft.ToString() + " hour(s)";
         }
 
+        public static void DrawStrings(Graphics g_, string s_, Dictionary<string, Image> images_, Font font_, Brush brush_, RectangleF layoutRectangle_, StringFormat format_)
+        {
+            var lines = s_.Split(['\n']);
+            if (lines.Length == 1)
+            {
+                DrawString(g_, s_, images_, font_, brush_, layoutRectangle_, format_);
+                return;
+            }
+            List<(string m_line, SizeF m_size)> linesAndSizes = lines.Select(l => (l, MeasureString(g_, l, images_, font_, layoutRectangle_.Size))).ToList();
+            var height = linesAndSizes.Sum(s => s.m_size.Height);
+            var layoutRectangle = new RectangleF(layoutRectangle_.Location, new SizeF(linesAndSizes.Max(s => s.m_size.Width), height));
+            var deltaY = layoutRectangle_.Height - height;
+            if (deltaY < 0)
+                deltaY = 0;
+            if (format_.LineAlignment == StringAlignment.Center)
+                layoutRectangle.Offset(0, deltaY / 2);
+            if (format_.LineAlignment == StringAlignment.Far)
+                layoutRectangle.Offset(0, deltaY);
+            var format = format_;
+            format.LineAlignment = StringAlignment.Near;
+            foreach (var line in linesAndSizes)
+            {
+                DrawString(g_, line.m_line, images_, font_, brush_, layoutRectangle, format);
+                layoutRectangle.Offset(0, line.m_size.Height);
+            }
+        }
+
+        public static SizeF MeasureString(Graphics g_, string s_, Dictionary<string, Image> images_, Font font_, SizeF layoutSize_)
+        {
+            var words = s_.Split([' ']);
+            if (words.Length == 0)
+                return new SizeF();
+            var lineWidths = new List<float>(1);
+            float x = 0;
+            float y = 0;
+            for (var i = 0; i < words.Length; i++)
+            {
+                var wordSize = new SizeF();
+                if (images_.ContainsKey(words[i]))
+                {
+                    var image = images_[words[i]];
+                    wordSize.Width = font_.GetHeight() / image.Height * image.Width;
+                    wordSize.Height = font_.GetHeight();
+                }
+                else
+                    wordSize = g_.MeasureString(words[i], font_);
+                if (x + wordSize.Width > layoutSize_.Width && x != 0)
+                {
+                    lineWidths.Add(x);
+                    x = 0;
+                    y += font_.Height;
+                }
+                x += wordSize.Width;
+            }
+            lineWidths.Add(x);
+            return new SizeF(lineWidths.Max(), y + font_.GetHeight());
+        }
+
         public static void DrawString(Graphics g_, string s_, Dictionary<string, Image> images_, Font font_, Brush brush_, RectangleF layoutRectangle_, StringFormat format_)
         {
             var words = s_.Split([' ']);
             var points = new PointF[words.Length];
-            var lineWidths = new List<float>();
+            var lineSpaces = new List<float>(); // свободное пространство в каждой строке
             var lineIndex = 0;
             var wordsInLines = new List<List<int>>
             {
@@ -116,7 +174,7 @@ namespace xcom_tactics
                     wordSize = g_.MeasureString(words[i], font_);
                 if (x + wordSize.Width > layoutRectangle_.Width && x != 0)
                 {
-                    lineWidths.Add(layoutRectangle_.Width - x);
+                    lineSpaces.Add(layoutRectangle_.Width - x);
                     x = 0;
                     y += font_.Height;
                     wordsInLines.Add(new List<int>());
@@ -126,17 +184,17 @@ namespace xcom_tactics
                 x += wordSize.Width;
                 wordsInLines[lineIndex].Add(i);
             }
-            lineWidths.Add(layoutRectangle_.Width - x);
+            lineSpaces.Add(layoutRectangle_.Width - x);
 
             // align
-            var deltaY = layoutRectangle_.Height - lineWidths.Count * font_.Height;
+            var deltaY = layoutRectangle_.Height - lineSpaces.Count * font_.Height; // свободное пространство по высоте
             if (format_.LineAlignment == StringAlignment.Center)
                 deltaY /= 2;
             if (format_.LineAlignment == StringAlignment.Near)
                 deltaY = 0;
-            for (var li = 0; li < lineWidths.Count; li++)
+            for (var li = 0; li < lineSpaces.Count; li++)
             {
-                var deltaX = lineWidths[li];
+                var deltaX = lineSpaces[li];
                 if (format_.Alignment == StringAlignment.Center)
                     deltaX /= 2;
                 if (format_.Alignment == StringAlignment.Near)

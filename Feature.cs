@@ -99,7 +99,7 @@ namespace xcom_tactics
         }
     }
 
-    internal class UnitAccuracy : Feature
+    internal class Accuracy : Feature
     {
         static Image? g_image;
 
@@ -111,13 +111,13 @@ namespace xcom_tactics
             }
         }
 
-        static UnitAccuracy()
+        static Accuracy()
         {
             var rm = new ResourceManager(typeof(xcom_tactics.Properties.Resources));
             g_image = rm.GetObject("attack") as Bitmap;
         }
 
-        public UnitAccuracy()
+        public Accuracy()
         {
             Name = "Accuracy";
         }

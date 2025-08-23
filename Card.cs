@@ -22,6 +22,7 @@
             set => statusLabels = value;
         }
 
+        // центр карты
         public Point Location { get; set; }
 
         //public Point AnimationLocation { get; set; }

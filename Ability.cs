@@ -8,16 +8,14 @@ using System.Threading.Tasks;
 
 namespace xcom_tactics
 {
-    internal class Ability
+    internal abstract class Ability
     {
         public virtual bool CanUseOnUnit(Unit subject_, Equipment equipment_, Unit object_)
         {
             return false;
         }
 
-        public virtual void UseOnUnit(Unit subject_, Equipment equipment_, Unit object_)
-        {
-        }
+        public abstract Action CreateAction(Unit subject_, Equipment equipment_, Unit object_);
 
         public virtual Image? GetImage()
         {
@@ -47,22 +45,32 @@ namespace xcom_tactics
             return true;
         }
 
-        public override void UseOnUnit(Unit subject_, Equipment equipment_, Unit object_)
+        public override Action CreateAction(Unit subject_, Equipment equipment_, Unit object_)
         {
-            var action = new Action();
+            var action = new Action(subject_, object_);
             action.Features.Add(new Feature { Name = "Accuracy" });
             action.Features.Add(new Damage());
 
-            // outcoming damage
-            //subject_.OnAction(action, true);
-            action.GetFeature("Accuracy").Value = subject_.GetFeature("Accuracy").Value;
-            equipment_.OnAction(action, true);
+            // outcoming damage calc
+            subject_.ModifyAction(action, true);
+            /*action.AddFeatureValue("Accuracy", subject_.GetFeature("Accuracy").Value, "[unit] ");
+            action.AddFeatureValue("Accuracy", equipment_.GetFeature("Accuracy").Value, "[weapon] ");
+            action.GetFeature("Damage").Value = equipment_.GetFeature("Damage").Value;*/
+            equipment_.ModifyAction(action, true);
 
-            // incoming damage
+            // incoming damage calc
             //object_.OnAction(action, false);
-            object_.Equipment.ForEach(e => e.OnAction(action, false));
-            object_.GetFeature("Health").Value -= action.GetFeature("Damage").Value;
+            object_.Equipment.ForEach(e => e.ModifyAction(action, false));
+            equipment_.ModifyAction(action, true);
+
+            // execute
+            /*action.GetFeature("Damage").Value = action.GetFeature("Damage").Value * action.GetFeature("Accuracy").Value / 100;
+            action.Features.RemoveAll(f => f.Name == "Accuracy");
+            object_.Equipment.ForEach(e => e.ExecuteAction(action, false));
+            object_.GetFeature("Health").Value -= action.GetFeature("Damage").Value;*/
             //TakeEffect
+
+            return action;
         }
 
         public override Image? GetImage()
@@ -89,12 +97,6 @@ namespace xcom_tactics
                 return false;
             return true;
         }
-
-        public override void UseOnUnit(Unit subject_, Equipment equipment_, Unit object_)
-        {
-            --equipment_.GetFeature("Quantity").Value;
-            base.UseOnUnit(subject_, equipment_, object_);
-        }
     }
 
     internal class DefenceAbility : Ability
@@ -110,17 +112,16 @@ namespace xcom_tactics
             return true;
         }
 
-        public override void UseOnUnit(Unit subject_, Equipment equipment_, Unit object_)
+        public override Action CreateAction(Unit subject_, Equipment equipment_, Unit object_)
         {
-            --equipment_.GetFeature("Quantity").Value;
-            if (equipment_.m_info.Value != 0)
-                object_.GetFeature("Health").Value += equipment_.m_info.Value;
-            //TakeEffect
+            var action = new Action(subject_, object_);
+            return action;
         }
     }
 
     internal class Action
     {
+        // todo: feature container
         List<Feature> m_features = [];
         public List<Feature> Features
         {
@@ -130,12 +131,56 @@ namespace xcom_tactics
             }
         }
 
+        /*public int Damage
+        {
+            get
+            {
+                if (Features.Any(f => f.Name == "Damage"))
+                {
+                    if (Features.Any(f => f.Name == "Accuracy"))
+                        return GetFeature("Damage").Value * GetFeature("Accuracy").Value / 100;
+                    else
+                        return GetFeature("Damage").Value;
+                }
+                return 0;
+            }
+        }*/
+
+        public Unit SubjectUnit { get; set; }
+
+        public Unit ObjectUnit { get; set; }
+
+        public string Text { get; set; }
+
+        public Action(Unit subject_, Unit object_)
+        {
+            SubjectUnit = subject_;
+            ObjectUnit = object_;
+            Text = "";
+        }
+
         public Feature GetFeature(string name_)
         {
             var result = m_features.Find(f => f.Name == name_);
             if (result == null)
                 throw new Exception("Feature not found");
             return result;
+        }
+
+        public void AddFeatureValue(string feature_, int value_, string commentPrefix_)
+        {
+            if (value_ == 0)
+                return;
+            GetFeature(feature_).Value += value_;
+            Text += commentPrefix_ + (value_ < 0 ? "-" : "+") + value_;
+        }
+
+        public void Execute()
+        {
+            GetFeature("Damage").Value = GetFeature("Damage").Value * GetFeature("Accuracy").Value / 100;
+            Features.RemoveAll(f => f.Name == "Accuracy");
+            ObjectUnit.Equipment.ForEach(e => e.ExecuteAction(this, false));
+            ObjectUnit.GetFeature("Health").Value -= GetFeature("Damage").Value;
         }
     }
 }

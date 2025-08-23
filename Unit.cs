@@ -1,4 +1,6 @@
-﻿namespace xcom_tactics
+﻿using System;
+
+namespace xcom_tactics
 {
     internal class Unit : ICloneable
     {
@@ -41,17 +43,7 @@
         public Unit()
         {
             m_features.Add(new UnitHealth { MaxValue = 3 });
-            m_features.Add(new UnitAccuracy { Value = 75 });
-        }
-
-        public void AddWeapon(EquipmentInfo.Names name_, int quantity_ = 1)
-        {
-            m_equipment.Add(new Weapon(name_, quantity_));
-        }
-
-        public void AddEquipment(EquipmentInfo.Names name_, int quantity_ = 1)
-        {
-            m_equipment.Add(new Equipment(name_, quantity_));
+            m_features.Add(new Accuracy { Value = 75 });
         }
 
         public void TakeEffect(Effect effect_)
@@ -91,6 +83,15 @@
             if (result == null)
                 throw new Exception("Feature is not MinMaxFeature");
             return result;
+        }
+
+        public void ModifyAction(Action action_, bool thisIsSubject_)
+        {
+            if (thisIsSubject_)
+            {
+                if (action_.Features.Any(f => f.Name == "Accuracy"))
+                    action_.AddFeatureValue("Accuracy", GetFeature("Accuracy").Value, "[unit] ");
+            }
         }
 
         /*public void OnAction(Action action_, bool thisIsSubject_)

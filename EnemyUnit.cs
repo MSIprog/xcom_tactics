@@ -16,13 +16,13 @@ namespace xcom_tactics
                 case Classes.AdvTropperM1:
                     GetFeature("Accuracy").Value = 65;
                     GetMinMaxFeature("Health").MaxValue = 4;
-                    AddWeapon(EquipmentInfo.Names.AssaultRifle);
+                    Equipment.Add(new Weapon(EquipmentInfo.Names.AssaultRifle));
                     break;
                 case Classes.AdvCaptainM1:
                     GetFeature("Accuracy").Value = 85;
                     GetMinMaxFeature("Health").MaxValue = 7;
-                    AddWeapon(EquipmentInfo.Names.AssaultRifle);
-                    AddWeapon(EquipmentInfo.Names.FragGrenage);
+                    Equipment.Add(new Weapon(EquipmentInfo.Names.AssaultRifle));
+                    Equipment.Add(new Weapon(EquipmentInfo.Names.FragGrenage));
                     break;
             }
         }

@@ -101,10 +101,11 @@ namespace xcom_tactics
             }
         }
 
-        public Equipment(EquipmentInfo.Names name_, int quantity_ = 1)
+        //Image m_image;
+
+        public Equipment(EquipmentInfo.Names name_)
         {
             m_info = EquipmentInfo.Get(name_);
-            m_features.Add(new MinMaxFeature { Name = "Quantity", MaxValue = quantity_ });
         }
 
         public Feature GetFeature(string name_)
@@ -115,7 +116,11 @@ namespace xcom_tactics
             return result;
         }
 
-        public virtual void OnAction(Action action_, bool thisIsSubject_)
+        public virtual void ModifyAction(Action action_, bool thisIsSubject_)
+        {
+        }
+
+        public virtual void ExecuteAction(Action action_, bool thisIsSubject_)
         {
         }
 
@@ -127,15 +132,22 @@ namespace xcom_tactics
 
     internal class Weapon : Equipment
     {
-        public Weapon(EquipmentInfo.Names name_, int quantity_ = 1) : base(name_, quantity_)
+        public Weapon(EquipmentInfo.Names name_) : base(name_)
         {
             Features.Add(new Damage { Value = m_info.Value });
+            Features.Add(new Accuracy { Value = m_info.Value });
         }
 
-        public override void OnAction(Action action_, bool thisIsSubject_)
+        public override void ModifyAction(Action action_, bool thisIsSubject_)
         {
-            if (thisIsSubject_)
-                action_.GetFeature("Damage").Value += m_info.Value * (action_.GetFeature("Accuracy").Value + m_info.AccuracyIncrease) / 100;
+            if (action_.Features.Any(f => f.Name == "Accuracy"))
+                action_.AddFeatureValue("Accuracy", GetFeature("Accuracy").Value, "[weapon] ");
+            if (action_.Features.Any(f => f.Name == "Damage"))
+                action_.AddFeatureValue("Damage", GetFeature("Damage").Value, "[weapon] ");
+        }
+
+        public override void ExecuteAction(Action action_, bool thisIsSubject_)
+        {
         }
     }
 
@@ -146,11 +158,12 @@ namespace xcom_tactics
             Features.Add(new DamageAbsorption { MaxValue = armor_ });
         }
 
-        public override void OnAction(Action action_, bool thisIsSubject_)
+        public override void ExecuteAction(Action action_, bool thisIsSubject_)
         {
             if (!thisIsSubject_)
             {
                 var damage = action_.GetFeature("Damage").Value;
+                // todo: minmaxvalue
                 var oldValue = damage;
                 damage -= GetFeature("DamageAbsorption").Value;
                 if (damage < 0)
@@ -167,7 +180,7 @@ namespace xcom_tactics
             Features.Add(new DamageAbsorption { MaxValue = plating_ });
         }
 
-        public override void OnAction(Action action_, bool thisIsSubject_)
+        public override void ExecuteAction(Action action_, bool thisIsSubject_)
         {
             if (!thisIsSubject_)
             {
@@ -186,12 +199,32 @@ namespace xcom_tactics
         }
     }
 
+    internal class Grenade : Weapon
+    {
+        public Grenade(EquipmentInfo.Names name_, int quantity_) : base(name_)
+        {
+            Features.Add(new MinMaxFeature { Name = "Quantity", MaxValue = quantity_ });
+        }
+
+        public override void ExecuteAction(Action action_, bool thisIsSubject_)
+        {
+            --GetFeature("Quantity").Value;
+            base.ExecuteAction(action_, thisIsSubject_);
+        }
+    }
+
     internal class FirstAidKit : Equipment
     {
-        public FirstAidKit(EquipmentInfo.Names name_, int healing_) : base(name_)
+        public FirstAidKit() : base(EquipmentInfo.Names.FirstAidKit)
         {
-            Features.Add(new Healing { Value = healing_ });
+            Features.Add(new Healing { Value = 2 });
             Features.Add(new MinMaxFeature { Name = "Quantity", MaxValue = 2 });
+        }
+
+        public override void ExecuteAction(Action action_, bool thisIsSubject_)
+        {
+            --GetFeature("Quantity").Value;
+            action_.ObjectUnit.GetFeature("Health").Value += GetFeature("Healing").Value;
         }
     }
 }

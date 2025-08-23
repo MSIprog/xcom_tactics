@@ -62,13 +62,19 @@ namespace xcom_tactics
             }
 
             // info
-            var rect = new Rectangle(Location.X - g_cardSize.Width / 2, Location.Y + g_cardSize.Height / 2 - 16, g_cardSize.Width, 16);
+            var info = Unit.MaxAttack.ToString() + " [attack]\n" + Unit.GetFeature("Health").Value.ToString() + " [health] ";
+            //var rect = new Rectangle(Location.X - g_cardSize.Width / 2, Location.Y + g_cardSize.Height / 2 - 16, g_cardSize.Width, 16);
             var font = new Font(FontFamily.GenericSansSerif, 8);
+            // todo: MeasureStrings
+            //var rectSize = Utils.MeasureString(graphics_, info, g_images, font, new SizeF(0, g_cardSize.Width / 4));
+            var rectSize = new SizeF(40, 30);
+            var rect = new RectangleF(Location - g_cardSize / 2, rectSize);
             var whiteBrush = new SolidBrush(Color.White);
             graphics_.FillRectangle(whiteBrush, rect);
             var blackBrush = new SolidBrush(Color.Black);
-            var format = new StringFormat { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Center };
-            Utils.DrawString(graphics_, Unit.MaxAttack.ToString() + " [attack] " + Unit.GetFeature("Health").Value.ToString() + " [health] ", g_images, font, blackBrush, rect, format);
+            //var format = new StringFormat { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Center };
+            var format = new StringFormat { Alignment = StringAlignment.Near, LineAlignment = StringAlignment.Near };
+            Utils.DrawStrings(graphics_, info, g_images, font, blackBrush, rect, format);
 
             base.Draw(graphics_);
         }
